@@ -1,0 +1,152 @@
+---
+title: "Impute NHANES: Imputing Missing Data in the National Health and Nutrition Examination Survey (NHANES)"
+output: html_document
+author: "Laha Ale"
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Introduction
+
+The **National Health and Nutrition Examination Survey (NHANES)** is a vital program of the National Center for Health Statistics (NCHS), designed to assess the health and nutritional status of adults and children in the United States. By combining interviews and physical examinations, NHANES gathers a wide range of data on various health indicators, dietary habits, and demographic information. This rich and comprehensive dataset is invaluable for public health research, policy-making, and epidemiological studies.
+
+However, like many large-scale surveys, NHANES data often contain **missing values** due to non-response, incomplete assessments, or data collection errors. Handling missing data appropriately is crucial to ensure the validity and reliability of any subsequent analyses. **Imputing missing values**—that is, estimating and replacing these missing entries with plausible values—can mitigate biases, enhance statistical power, and preserve the dataset's integrity.
+
+Given the complexity and high dimensionality of the NHANES dataset, traditional imputation methods such as **Multiple Imputation by Chained Equations (MICE)** may fall short in capturing intricate relationships between variables across different tables. Therefore, a more **systematic and automated approach** is necessary to identify the most relevant predictors and effectively impute missing data.
+
+## Objectives
+
+The primary objectives of this project are as follows:
+
+1. **Data Integration:** Consolidate multiple NHANES data tables into a unified dataset for comprehensive analysis.
+2. **Exploratory Data Analysis (EDA):** Understand the structure, variable types, and missingness patterns within the dataset.
+3. **Automated Feature Selection:** Implement advanced feature selection techniques to identify the most relevant variables for imputation.
+4. **Missing Data Imputation:** Apply sophisticated imputation methods tailored to the dataset's complexity to estimate missing values.
+5. **Evaluation of Imputation Quality:** Assess the effectiveness of the imputation process using a variety of diagnostic and validation techniques.
+6. **Documentation and Reproducibility:** Ensure that all steps are thoroughly documented and that the analysis is reproducible.
+
+## Importance of Imputing Missing Data in NHANES
+
+Accurate imputation of missing data in NHANES is essential for several reasons:
+
+- **Preservation of Statistical Power:** Missing data can reduce the effective sample size, diminishing the power to detect significant effects.
+- **Bias Reduction:** Incomplete data can introduce biases, especially if the missingness is not random. Proper imputation methods help mitigate these biases.
+- **Comprehensive Analysis:** Imputed datasets allow for more complete analyses, enabling researchers to explore a wider range of questions without the constraints imposed by missingness.
+- **Policy and Public Health Implications:** Reliable data underpin effective public health policies and interventions. Ensuring data completeness enhances the credibility and applicability of research findings.
+
+## Overview of the Imputation Process
+
+This project employs a **multi-step approach** to impute missing values in the NHANES dataset:
+
+1. **Data Integration:** Merging various NHANES tables (e.g., demographics, examination, laboratory, questionnaire data) into a single cohesive dataset.
+2. **Data Preprocessing:** Handling data types, encoding categorical variables, and incorporating survey design variables to maintain representativeness.
+3. **Feature Selection:** Utilizing automated algorithms like **Boruta** and **Recursive Feature Elimination (RFE)** to identify the most pertinent predictors for each target variable with missing data.
+4. **Imputation:** Applying advanced imputation techniques such as **Random Forest-based imputation** and **Multiple Imputation by Chained Equations (MICE)** enhanced with selected features.
+5. **Evaluation:** Assessing imputation quality through visual comparisons, statistical measures, cross-validation, and model-based evaluations.
+6. **Documentation:** Maintaining a thorough record of all processes, decisions, and results to ensure transparency and reproducibility.
+
+## Structure of This Document
+
+This RMarkdown document is organized into the following sections:
+
+1. **Data Integration and Preparation:** Steps to merge NHANES tables and prepare the dataset for analysis.
+2. **Exploratory Data Analysis (EDA):** Initial exploration to understand variable distributions and missingness patterns.
+3. **Automated Feature Selection:** Implementation of feature selection algorithms to identify relevant predictors.
+4. **Missing Data Imputation:** Detailed methodology and code for imputing missing values using selected features.
+5. **Evaluation of Imputation Quality:** Comprehensive evaluation using various diagnostic and validation techniques.
+6. **Conclusion:** Summary of findings, implications, and potential future work.
+
+Each section contains detailed explanations, code snippets, and visualizations to guide you through the imputation process systematically.
+
+---
+
+Effective data integration and preparation are foundational steps in any data analysis project. In this section, we will:
+
+1. **Load Necessary Libraries:** Install and load the essential R packages required for data manipulation and analysis.
+2. **Import NHANES Data Tables:** Read in multiple NHANES data files from different domains.
+3. **Merge Data Tables:** Consolidate the individual tables into a single, comprehensive dataset using the unique identifier `SEQN`.
+4. **Inspect and Clean the Merged Dataset:** Examine the structure, handle missing values, and perform initial data cleaning.
+5. **Encode Categorical Variables:** Convert categorical variables into appropriate formats for analysis.
+6. **Incorporate Survey Design Variables:** Retain and prepare survey design elements (weights, strata, clusters) essential for accurate analysis.
+
+Let's proceed step by step.
+
+## 1. Load Necessary Libraries
+
+Before we begin, ensure that all required R packages are installed and loaded. These packages facilitate data importation, manipulation, visualization, and imputation.
+
+```{r load-libraries, message=FALSE, warning=FALSE}
+# Install packages if they are not already installed
+required_packages <- c("tidyverse",  "mice", "survey", "naniar")
+installed_packages <- rownames(installed.packages())
+
+for(pkg in required_packages){
+  if(!(pkg %in% installed_packages)){
+    install.packages(pkg, dependencies = TRUE)
+  }
+}
+
+# Load libraries
+library(tidyverse)   # For data manipulation and visualization
+library(mice)        # For multiple imputation
+library(survey)      # For survey design and analysis
+library(naniar)      # For handling missing data
+library(nhanesA)     # For loading data
+```
+### 2. Import NHANES Data Tables
+
+We can import the data with `nhanesA` packages
+
+```{r import data}
+# Import each data table
+demographics <- nhanes("DEMO_G")
+examination  <- nhanes("BPX_G")
+laboratory   <- nhanes("ALB_CR_G")
+questionnaire <- nhanes("ALQ_G")
+
+# Preview the imported data tables
+glimpse(demographics)
+```
+
+### 3. Merge Data Tables
+To perform comprehensive analyses, we'll merge the individual tables into a single dataset using the unique identifier SEQN (Respondent Sequence Number). This ensures that all information pertaining to a single respondent is consolidated.
+
+
+```{r merge data}
+# Assuming no duplicates, proceed to merge
+nhanes_merged <- demographics %>%
+  dplyr::left_join(examination, by = "SEQN") %>%
+  dplyr::left_join(laboratory, by = "SEQN") %>%
+  dplyr::left_join(questionnaire, by = "SEQN")
+
+# Verify the merge
+dim(nhanes_merged)
+glimpse(nhanes_merged)
+sapply(nhanes_merged, function(x){sum(is.na(x))/length(x)})
+```
+
+
+
+*To be continued...*
+
+# Exploratory Data Analysis (EDA)
+
+*To be continued...*
+
+# Automated Feature Selection
+
+*To be continued...*
+
+# Missing Data Imputation
+
+*To be continued...*
+
+# Evaluation of Imputation Quality
+
+*To be continued...*
+
+# Conclusion
+
+*To be continued...*
